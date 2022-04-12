@@ -1,48 +1,72 @@
 #include "pch.h"
 #include "RLFocus.h"
+#include <Windows.h>
 
 
-BAKKESMOD_PLUGIN(RLFocus, "Never miss a kickoff again", plugin_version, PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(RLFocus, "Window Focus", plugin_version, PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
 void RLFocus::onLoad()
 {
 	_globalCvarManager = cvarManager;
-	//cvarManager->log("Plugin loaded!");
 
-	//cvarManager->registerNotifier("my_aweseome_notifier", [&](std::vector<std::string> args) {
-	//	cvarManager->log("Hello notifier!");
-	//}, "", 0);
+	cvarManager->registerCvar("RLFocus_Mode", "0", "0 = disabled, 1 = only sound, 2 = set focus to RL", false, true, 0, true, 2)
+		.addOnValueChanged([this](std::string oldValue, CVarWrapper cvar) {
+		Plugin_Mode = cvar.getIntValue();
+	});
 
-	//auto cvar = cvarManager->registerCvar("template_cvar", "hello-cvar", "just a example of a cvar");
-	//auto cvar2 = cvarManager->registerCvar("template_cvar2", "0", "just a example of a cvar with more settings", true, true, -10, true, 10 );
+	cvarManager->registerCvar("onKickOff", "0", "Focus on KickOff", false, true, 0, true, 1)
+		.addOnValueChanged([this](std::string oldValue, CVarWrapper cvar) {
+		onKickOff = cvar.getBoolValue();
+	});
 
-	//cvar.addOnValueChanged([this](std::string cvarName, CVarWrapper newCvar) {
-	//	cvarManager->log("the cvar with name: " + cvarName + " changed");
-	//	cvarManager->log("the new value is:" + newCvar.getStringValue());
-	//});
+	cvarManager->registerCvar("onGameJoin", "0", "Focus on GameJoin", false, true, 0, true, 1)
+		.addOnValueChanged([this](std::string oldValue, CVarWrapper cvar) {
+		onGameJoin = cvar.getBoolValue();
+	});
 
-	//cvar2.addOnValueChanged(std::bind(&RLFocus::YourPluginMethod, this, _1, _2));
+	cvarManager->registerCvar("onGameStart", "0", "Focus on GameStart", false, true, 0, true, 1)
+		.addOnValueChanged([this](std::string oldValue, CVarWrapper cvar) {
+		onGameStart = cvar.getBoolValue();
+	});
 
-	// enabled decleared in the header
-	//enabled = std::make_shared<bool>(false);
-	//cvarManager->registerCvar("TEMPLATE_Enabled", "0", "Enable the TEMPLATE plugin", true, true, 0, true, 1).bindTo(enabled);
+	gameWrapper->HookEventPost("Function GameEvent_Soccar_TA.Countdown.BeginState",
+		[this](std::string eventName) {
+		if(onKickOff && Plugin_Mode != 0 && gameWrapper->IsInOnlineGame())
+			setFocus();
+	});
 
-	//cvarManager->registerNotifier("NOTIFIER", [this](std::vector<std::string> params){FUNCTION();}, "DESCRIPTION", PERMISSION_ALL);
-	//cvarManager->registerCvar("CVAR", "DEFAULTVALUE", "DESCRIPTION", true, true, MINVAL, true, MAXVAL);//.bindTo(CVARVARIABLE);
-	//gameWrapper->HookEvent("FUNCTIONNAME", std::bind(&TEMPLATE::FUNCTION, this));
-	//gameWrapper->HookEventWithCallerPost<ActorWrapper>("FUNCTIONNAME", std::bind(&RLFocus::FUNCTION, this, _1, _2, _3));
-	//gameWrapper->RegisterDrawable(bind(&TEMPLATE::Render, this, std::placeholders::_1));
+	gameWrapper->HookEventPost("Function ProjectX.OnlineGameJoinGame_X.StartJoin",
+		[this](std::string eventName) {
+		if (onGameJoin && Plugin_Mode != 0)
+			setFocus();
+	});
 
-
-	//gameWrapper->HookEvent("Function TAGame.Ball_TA.Explode", [this](std::string eventName) {
-	//	cvarManager->log("Your hook got called and the ball went POOF");
-	//});
-	// You could also use std::bind here
-	//gameWrapper->HookEvent("Function TAGame.Ball_TA.Explode", std::bind(&RLFocus::YourPluginMethod, this);
+	gameWrapper->HookEventPost("Function TAGame.Team_TA.PostBeginPlay",
+		[this](std::string eventName) {
+		if(onGameStart && Plugin_Mode != 0)
+			setFocus();
+	});
 }
 
 void RLFocus::onUnload()
 {
+}
+
+void RLFocus::setFocus() {
+
+	HWND RocketLeague = FindWindowA(NULL, "Rocket League (64-bit, DX11, Cooked)");
+
+	if (!RocketLeague) return;
+
+	if (Plugin_Mode == 1) {
+		SendMessage(RocketLeague, WM_SETFOCUS, 0, 0);
+		return;
+	}
+
+	if (Plugin_Mode == 2) {
+		SetForegroundWindow(RocketLeague);
+		return;
+	}
 }
