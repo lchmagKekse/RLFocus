@@ -22,4 +22,4 @@ ___
  - `on joining countdown` - Activate sound/Set Window-Focus at the joining countdown
  - `on game start` - Activate sound/Set Window-Focus when a game starts
 ___
-If you find bugs, have suggestions for improvement or want a new event to be added, contact me on discord: ***lchmagKekse#0420***
+If you find bugs, have suggestions for improvement or want a new event to be added, contact me on discord: ***lchmagKekse#0475***
